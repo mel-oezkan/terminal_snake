@@ -3,6 +3,7 @@ import json
 import sys
 
 import config as CONFIG
+from game import Game
 from menu import Menu
 
 
@@ -72,17 +73,29 @@ class Window:
         if not self.loaded:
             self.init_screen()
 
+        log_file = open("logfile.txt", "w")
+
         menu_window = Menu(self.screen, self.window_state)
+        game_window = Game(self.screen, self.window_state)
         
+        log_file.write(self.window_state["active_window"] + "\n")
         while True:
+
             if self.window_state["active_window"] == "MENU":
                 menu_window()
+                self.screen.clear()
+                continue 
 
             elif self.window_state["active_window"] == "GAME":
-                pass
+                game_window()
+                self.screen.clear()
+                continue 
 
             elif self.window_state["active_window"] == "QUIT":
                 curses.endwin()
+                self.screen.clear()
                 return 
+
             
+        raise KeyError
 

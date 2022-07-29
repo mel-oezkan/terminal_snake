@@ -5,6 +5,7 @@ import pathlib
 from typing import Tuple
 from config import GameSettings, Modes, Keys, default_settings
 
+import common
 
 class Menu:
     def __init__(self, screen, _state) -> None:
@@ -32,7 +33,7 @@ class Menu:
         
         assert len(menu_options) == len(graphics), f"Menu args have to match in size \n {len(menu_options)} : {len(graphics)}"
 
-        print(type(self.screen))
+        
         max_y, max_x = self.screen.getmaxyx()
         offset = len(menu_options) // 2 * (-1)
 
@@ -80,10 +81,19 @@ class Menu:
 
             elif self.menu_state["active_menu"] == "GAME":
                 self.update_window("GAME")
+                self.screen.clear()
+
+                # set the menu state to main such that when coming
+                # back the default value ("MAIN") will be set
+                # todo: Could also go into the config file as default option for ease of use
+                main_menu.update_state("MAIN")
+                
                 return 
 
             elif self.menu_state["active_menu"] == "QUIT":
                 self.update_window("QUIT")
+                self.screen.clear()
+
                 return 
 
             else:
@@ -162,23 +172,13 @@ class SettingsMenu(Menu):
 
         data: dict = {}
         if settings_path.exists() and settings_path.stat().st_size > 0:
-            with open(settings_path, "r") as source:
-                data = json.load(source)
+            data = common.load_settings(path)
 
-        self.write_settings(default_settings, path)
+        common.write_settings(default_settings, path)
         data = default_settings
 
         self.settings: GameSettings = data
 
-    def write_settings(self, new_settings: dict, path: str = "settings.json") -> None:
-        """ Rewrite the new settings
-        
-        :params new_settings: dict containing the values for the game settings
-        :params path: str of the destination to write the settings
-        """
-
-        with open(path, "w") as source:
-            json.dump(new_settings, source)
             
     def create_options(self):
 
