@@ -3,9 +3,14 @@ import curses
 import pathlib
 
 from typing import Tuple
-from config import GameSettings, Modes, Keys, default_settings
 
 import common
+
+from config import Defaults
+from config import GameSettings
+from config import Modes 
+from config import Keys 
+from config import default_settings
 
 class Menu:
     def __init__(self, screen, _state) -> None:
@@ -85,9 +90,8 @@ class Menu:
 
                 # set the menu state to main such that when coming
                 # back the default value ("MAIN") will be set
-                # todo: Could also go into the config file as default option for ease of use
-                main_menu.update_state("MAIN")
-                
+                main_menu.update_state(Defaults.MENU.value)
+
                 return 
 
             elif self.menu_state["active_menu"] == "QUIT":
@@ -238,9 +242,6 @@ class SettingsMenu(Menu):
 
         # write the new settings 
         self.write_settings(self.settings)
-
-
-
 
     def handle_submit(self, action):
         if action == Keys.ENTER.value:

@@ -31,3 +31,8 @@ class Keys(Enum):
     KEY_M  = ord("m")
     ENTER = ord("\n")
 
+class Defaults(Enum):
+    GAME = "DEATH"
+    MENU = "MAIN"
+    SNAKE = "ACTIVE"
+
