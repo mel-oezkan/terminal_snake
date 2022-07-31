@@ -21,7 +21,7 @@ class Game:
         self.screen = screen
         self.window_state = _window
         
-        self.game_state = {"current_state": "GAME"}
+        self.game_state = {"current_state": "DEATH"}
         self.game_score = {"score": 0}
 
         self.max_y, self.max_x = self.screen.getmaxyx()
@@ -59,9 +59,7 @@ class Game:
     def __call__(self):
 
         state_death = GameDeath(self.screen, self.game_state, self.window_state, self.game_score)
-
         state_game = GameWindow(self.screen, self.game_state, self.window_state, self.game_score)
-        state_game.reset()
 
         while True:
             if self.game_state["current_state"] == "GAME":

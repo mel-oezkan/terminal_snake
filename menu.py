@@ -243,6 +243,9 @@ class SettingsMenu(Menu):
         # write the new settings 
         self.write_settings(self.settings)
 
+
+
+
     def handle_submit(self, action):
         if action == Keys.ENTER.value:
             if self.active_option == len(self.graphics) -1:
