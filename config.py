@@ -32,7 +32,7 @@ class Keys(Enum):
     ENTER = ord("\n")
 
 class Defaults(Enum):
-    GAME = "DEATH"
+    GAME = "GAME"
     MENU = "MAIN"
     SNAKE = "ACTIVE"
 

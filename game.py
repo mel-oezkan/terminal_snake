@@ -60,6 +60,7 @@ class Game:
 
         state_death = GameDeath(self.screen, self.game_state, self.window_state, self.game_score)
         state_game = GameWindow(self.screen, self.game_state, self.window_state, self.game_score)
+        state_game.reset()
 
         while True:
             if self.game_state["current_state"] == "GAME":
@@ -108,8 +109,8 @@ class GameWindow(Game):
 
         self.is_paused = False
 
-        self.direction = 0
-        self.head_pos = [1,1]
+        # initalize starting position and direction
+        self._start_position()
         self.body = [self.head_pos] * self.settings["init_length"]
         self.deadcell = self.body[-1][:]
 
@@ -120,22 +121,47 @@ class GameWindow(Game):
             random.randrange(2, self.max_x - 1)
         ]
 
+    def _start_position(self) -> None:
+        """ Given the random start location of the snake orient the 
+        snake in a way such that it does not collide directly into the wall.
+        
+        Looks up which borders are closest and orients the snake into the 
+        opposite direction.
+        """
+        self.head_pos = [
+            random.randrange(1, self.max_y - 1), 
+            random.randrange(1, self.max_x - 1)
+        ]
+
+        # select up: 2 if pos is closes to the bottom and vice versa 
+        vertical_dist = self.max_y - self.head_pos[0] 
+        vertical_dir = 2 if vertical_dist >= self.max_y // 2 else 3
+
+        # select left: 1 if pos is closes to the right and vice versa 
+        horizontal_dist = self.max_x - self.head_pos[1]
+        horizontal_dir = 1 if horizontal_dist >= self.max_x // 2 else 0
+        
+        # choose either one 
+        self.direction = random.choice([vertical_dir, horizontal_dir])
 
     def _new_food(self):
         """ Searches a freee space and then places a new apple there """
         
         while True:
             new_pos = [
-                random.randrange(2, self.max_y - 1), 
-                random.randrange(2, self.max_x - 1)
+                random.randrange(1, self.max_y - 1), 
+                random.randrange(1, self.max_x - 1)
             ]
 
             if self.screen.inch(*new_pos) == config.Keys.SPACE.value:
                 self.food_pos = new_pos
                 break
 
-    def draw_game(self):
 
+    def draw_game(self) -> None:
+        """ Draws the differenct components of the game"""
+        
+        # overwrites the old (dead) cells by replacing the chars by empty strings
         if self.deadcell not in self.body:
             self.screen.addch(
                 self.deadcell[0],
@@ -143,6 +169,7 @@ class GameWindow(Game):
                 " "
             )
 
+        # Draws the head of the snake according to the direction it looks
         headchar = self.heads[self.direction]
         self.screen.addch(
             self.head_pos[0], 
@@ -151,6 +178,7 @@ class GameWindow(Game):
             curses.A_BOLD|curses.color_pair(3)
         )
 
+        # Draws the body 
         self.screen.addch(
             self.body[1][0], 
             self.body[1][1], 
@@ -158,12 +186,14 @@ class GameWindow(Game):
             curses.color_pair(4)
         )
 
+        # draws the food
         self.screen.addch(
             self.food_pos[0],
             self.food_pos[1],
             ord(self.food),
             curses.A_BOLD| curses.color_pair(2)
         )
+
 
     def handle_menu(self, action: int) -> bool:
         """ Checks if any of the menu keys is pressed
@@ -217,6 +247,7 @@ class GameWindow(Game):
     def move_head(self):
         """ Moves the head position and adjusts the body """
         
+        # right: 0, left: 1, up: 2, down: 3 
         if self.direction == 0:
             self.head_pos[1] += 1
 
@@ -262,7 +293,6 @@ class GameWindow(Game):
     def run(self):
         self.screen.border()
 
-
         # handle the key inputs
         action = self.screen.getch()
         self.handle_menu(action)
@@ -285,14 +315,10 @@ class GameWindow(Game):
         self.screen.move(self.max_y - 1, self.max_x - 1)
         self.screen.refresh()
 
-        sleep_time = self.snake_speed / len(self.body)
+        sleep_time = 1 / self.snake_speed  
         sleep_time = sleep_time / 2 if self.direction in [0,1] else sleep_time
         
         time.sleep(sleep_time)
-
-
-
-
 
 
 
@@ -306,7 +332,7 @@ class GameDeath(Game):
         self.status = _status
 
 
-    def handle_keys(self, action):
+    def handle_menu_keys(self, action):
         # todo: change into switch case when python 3.10 is used
         
         if action == config.Keys.ENTER.value:
@@ -351,7 +377,7 @@ class GameDeath(Game):
 
     
         action = self.screen.getch()
-        self.handle_keys(action)
+        self.handle_menu_keys(action)
 
         self.screen.clear()
 

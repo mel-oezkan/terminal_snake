@@ -177,9 +177,9 @@ class SettingsMenu(Menu):
         data: dict = {}
         if settings_path.exists() and settings_path.stat().st_size > 0:
             data = common.load_settings(path)
-
-        common.write_settings(default_settings, path)
-        data = default_settings
+        else:
+            common.write_settings(default_settings, path)
+            data = default_settings
 
         self.settings: GameSettings = data
 
@@ -205,7 +205,7 @@ class SettingsMenu(Menu):
         """
         
         # Handle increment
-        if action == curses.KEY_LEFT:
+        if action == curses.KEY_RIGHT:
             if self.active_option == 0:
                 self.settings["init_length"] += 1
 
@@ -221,7 +221,7 @@ class SettingsMenu(Menu):
                 return
 
         # Handle decrement (and prevent the value getting below 0)
-        elif action == curses.KEY_RIGHT:
+        elif action == curses.KEY_LEFT:
             if self.active_option == 0:
                 self.settings["init_length"] = max(self.settings["init_length"] -1, 0)
 
@@ -241,7 +241,7 @@ class SettingsMenu(Menu):
             return
 
         # write the new settings 
-        self.write_settings(self.settings)
+        common.write_settings(self.settings)
 
 
 
