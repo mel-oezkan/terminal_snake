@@ -10,24 +10,32 @@ from config import Defaults
 
 
 class Game:
-
-    food = "@"
-    char = "\u25AA" #"\u25A0"
-    heads = ("\u25B9", "\u25C3", "\u25B5", "\u25BF")
-    
-    blank = " "
-    
-    def __init__(self, screen, _window):
+    def __init__(self, screen, _window: dict) -> None:
+        """ Initialize basic variables
+        
+        param: screen (_CursesWindow): The screen instance of curses
+        param: _window: Information on which winodw is active (e.g. GAME or MENU)
+        """
         self.screen = screen
         self.window_state = _window
         
         self.game_state = {"current_state": "DEATH"}
         self.game_score = {"score": 0}
 
+        self.max_y: int
+        self.max_x: int
         self.max_y, self.max_x = self.screen.getmaxyx()
 
+
     def update_window(self, value: str) -> None:
+        """ Update the subwindows of the game instance
+        
+        Possible values include:
+            - "DEATH": Brings the user to the death screen
+            - "GAME": Brings the user to the main game instance
+        """
         self.window_state["active_window"] = value
+
 
     def _update_state(self, value: str) -> None:
         """ Function to change the state within the subclasses 
@@ -40,8 +48,8 @@ class Game:
 
         :param value: new value for the current state
         """
-
         self.state["current_state"] = value
+
 
     def _update_score(self, value: int) -> None:
         """ Function to update the score of the snake game 
@@ -53,7 +61,6 @@ class Game:
         """
 
         self.status["score"] = value
-
 
 
     def __call__(self):
@@ -88,14 +95,22 @@ class Game:
                 return 
 
 
-class GameWindow(Game):
-    """ Either Active or Paused """
 
+class GameWindow(Game):
+
+    # variables to store the respective charachters
     food = "@"
     char = "\u25AA" #"\u25A0"
     headchars = ("\u25B9", "\u25C3", "\u25B5", "\u25BF")
 
-    def __init__(self, screen, _state: dict, _window: dict, _status: dict):
+    def __init__(self, screen, _state: dict, _window: dict, _status: dict) -> None:
+        """ Initalize class variables
+        
+        :param screen (_CursesScreen): cureses screen instance
+        :param _state: which game subwindow is active
+        :param _window: which main window is active (currently: GAME)
+        :param _status: information about score
+        """
         super().__init__(screen, _window)
 
         self.screen = screen
@@ -107,7 +122,7 @@ class GameWindow(Game):
     def reset(self):
         self.settings = common.load_settings()
         self._update_score(0)
-        
+
         self.is_paused = False
 
         # initalize starting position and direction
@@ -122,6 +137,7 @@ class GameWindow(Game):
             random.randrange(2, self.max_x - 1)
         ]
 
+
     def _start_position(self) -> None:
         """ Given the random start location of the snake orient the 
         snake in a way such that it does not collide directly into the wall.
@@ -129,6 +145,7 @@ class GameWindow(Game):
         Looks up which borders are closest and orients the snake into the 
         opposite direction.
         """
+        self.head_pos : List[int]
         self.head_pos = [
             random.randrange(1, self.max_y - 1), 
             random.randrange(1, self.max_x - 1)
@@ -136,14 +153,16 @@ class GameWindow(Game):
 
         # select up: 2 if pos is closes to the bottom and vice versa 
         vertical_dist = self.max_y - self.head_pos[0] 
-        vertical_dir = 2 if vertical_dist >= self.max_y // 2 else 3
+        vertical_dir = 3 if vertical_dist >= self.max_y // 2 else 2
 
         # select left: 1 if pos is closes to the right and vice versa 
         horizontal_dist = self.max_x - self.head_pos[1]
-        horizontal_dir = 1 if horizontal_dist >= self.max_x // 2 else 0
+        horizontal_dir = 0 if horizontal_dist >= self.max_x // 2 else 1
         
         # choose either one 
+        self.direction: int
         self.direction = random.choice([vertical_dir, horizontal_dir])
+
 
     def _new_food(self):
         """ Searches a freee space and then places a new apple there """
@@ -218,11 +237,6 @@ class GameWindow(Game):
             return True
 
 
-        elif action == ord("p") or action == ord("P"):
-            pass
-
-
-
     def handle_move(self, action: int) -> None:
         """ Handles the direction of the snake given a arrow key
         
@@ -245,6 +259,7 @@ class GameWindow(Game):
 
         return 
 
+
     def move_head(self):
         """ Moves the head position and adjusts the body """
         
@@ -261,13 +276,26 @@ class GameWindow(Game):
         elif self.direction == 3:
             self.head_pos[0] += 1
 
+        # sets the last body element to deadcell and
+        # shifts the body elements by one 
         self.deadcell = self.body[-1][:]
         for i in range(len(self.body) -1, 0, -1):
             self.body[i] = self.body[i -1]
 
+        # sets the new body item to the head pos
         self.body[0] = self.head_pos[:]
 
+
     def check_collision(self):
+        """ Chks if the new position of the snake head is valid
+        
+        Given the new head position gets the char the new position
+        has and compares it to the wall and food chars. Additionally 
+        the method retuns a bool if the snake hit a wall which allows
+        to break the game instantly instead of waitin for a complete tick
+
+        :returns boolean: If the snake collided with a wall
+        """
         
         n_char = self.screen.inch(*self.head_pos)
         
@@ -285,13 +313,15 @@ class GameWindow(Game):
         
         else:
             self._update_state("DEATH")
-
             return False
 
         return True
 
 
     def run(self):
+        """ Main Loop of Snake Game instance"""
+        
+        # draw the border
         self.screen.border()
 
         # handle the key inputs
@@ -308,10 +338,12 @@ class GameWindow(Game):
         valid_move = self.check_collision()
 
         if not valid_move:
+            # break the game without sleeping
             return 
 
         self.draw_game()
 
+        # draw score
         self.screen.addstr(0, 1, f" Score: {self.status['score']} ")
         self.screen.move(self.max_y - 1, self.max_x - 1)
         self.screen.refresh()
@@ -325,6 +357,13 @@ class GameWindow(Game):
 
 class GameDeath(Game):
     def __init__(self, screen, _state: dict, _window: dict, _status: dict):
+        """ Initalize class variables
+        
+        :param screen (_CursesScreen): cureses screen instance
+        :param _state: which game subwindow is active
+        :param _window: which main window is active (currently: GAME)
+        :param _status: information about score
+        """
         super().__init__(screen, _window)
 
         self.screen = screen
@@ -333,8 +372,13 @@ class GameDeath(Game):
         self.status = _status
 
 
-    def handle_menu_keys(self, action):
-        # todo: change into switch case when python 3.10 is used
+    def handle_menu_keys(self, action: int):
+        """ Handles the menu keys
+        todo: change into switch case when python 3.10 is used instead
+
+        :param action: ascii value of pressed key
+        """
+        
         
         if action == config.Keys.ENTER.value:
             self._update_state("GAME")
@@ -350,6 +394,7 @@ class GameDeath(Game):
 
 
     def draw_end(self):
+        """ Drawing the end screen """
         elements: Tuple[str] = (
             f"You got {self.status['score']} points",
             "Press Enter to play again",
@@ -357,10 +402,13 @@ class GameDeath(Game):
             "Press M to go to main menu",
         )
 
+        max_y: int
+        max_x: int
 
         max_y, max_x = self.screen.getmaxyx()
         offset = len(elements) * (-1)
         
+        # draw the menu elements with an offset
         for idx, line in enumerate(elements):
             self.screen.addstr(
                 max_y // 2 + offset + idx,
@@ -371,6 +419,8 @@ class GameDeath(Game):
 
 
     def run(self):
+        """ Main window of death screen"""
+
         self.screen.clear()
 
         self.screen.border()
