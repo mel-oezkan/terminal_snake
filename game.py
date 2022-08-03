@@ -106,7 +106,8 @@ class GameWindow(Game):
         
     def reset(self):
         self.settings = common.load_settings()
-
+        self._update_score(0)
+        
         self.is_paused = False
 
         # initalize starting position and direction
