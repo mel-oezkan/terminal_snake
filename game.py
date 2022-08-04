@@ -1,6 +1,6 @@
+import time
 import curses
 import random
-import time
 from typing import List, Tuple
 
 import config
