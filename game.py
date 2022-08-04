@@ -317,7 +317,7 @@ class GameWindow(Game):
         n_char = self.screen.inch(*self.head_pos)
         
         # n_char value for @ sign
-        if n_char == 2097728:
+        if n_char == 2097728 or n_char == 41943104:
             self._update_score(self.status['score'] +1)
             
             for _ in range(self.settings["growth_size"]):
