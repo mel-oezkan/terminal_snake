@@ -1,2 +1,7 @@
 ./___pychache___
-___pychache___
+___pychache___/*
+
+*.pyc
+*.pyo
+
+logfile.txt
