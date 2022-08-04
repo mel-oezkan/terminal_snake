@@ -72,11 +72,11 @@ class Game:
         while True:
             if self.game_state["current_state"] == "GAME":
                 self.screen.nodelay(1)
-                state_game.run()
+                state_game()
 
             elif self.game_state["current_state"] == "DEATH":
                 self.screen.nodelay(0)
-                state_death.run()   
+                state_death()   
                 state_game.reset()
                 self.screen.clear()
 
@@ -316,7 +316,7 @@ class GameWindow(Game):
         
         n_char = self.screen.inch(*self.head_pos)
         
-        # n_char value for @ sign
+        # n_char value for @ sign (linux and windows)
         if n_char == 2097728 or n_char == 41943104:
             self._update_score(self.status['score'] +1)
             
@@ -336,7 +336,7 @@ class GameWindow(Game):
         return True
 
 
-    def run(self):
+    def __call__(self) -> None:
         """ Main Loop of Snake Game instance"""
         
         # draw the border
@@ -441,7 +441,7 @@ class GameDeath(Game):
             )
 
 
-    def run(self):
+    def __call__(self):
         """ Main window of death screen"""
 
         self.screen.clear()

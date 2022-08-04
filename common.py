@@ -1,16 +1,22 @@
 import json
 import pathlib
-from pydoc import source_synopsis
 from typing import List
 from datetime import datetime
 
 from config import LeaderboardItem
 
 
-def load_settings():
+def load_settings() -> dict:
+    """ Loads the settings from the respective file
+    
+    :returns the settings as a dict
+    """
     settings_path = pathlib.Path("settings.json").absolute()
 
+    # default value for the data
     data: dict = {}
+
+    # check if file exists and is not empty
     if settings_path.exists() and settings_path.stat().st_size > 0:
         try:
             with open(settings_path, "r") as source:
@@ -22,7 +28,12 @@ def load_settings():
     return data
 
 
-def write_settings(new_data: dict):
+def write_settings(new_data: dict) -> None:
+    """ Wirte the given data to the settings file
+    
+    :param new_data: new setting values for the game 
+    """
+
     with open("settings.json", "w") as source:
         json.dump(new_data, source, indent=3)
 
@@ -47,8 +58,7 @@ def read_leaderboard() -> dict:
 
 def add_score(
     leaderboard_list: List[LeaderboardItem], 
-    leaderboard_item: LeaderboardItem
-) -> List[LeaderboardItem]:
+    leaderboard_item: LeaderboardItem) -> List[LeaderboardItem]:
     """ Takes a new Leaderboard entry, adds it to the leaderboard 
     and additionally sorts the scores according to their score values
     

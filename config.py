@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Tuple, TypedDict
+from typing import TypedDict
 
 class GameSettings(TypedDict):
     init_length: int
@@ -13,10 +13,7 @@ class LeaderboardItem(TypedDict):
     score: int
 
 
-diff_names = ("Easy", "Medium", "Hard")
-diff_values = (0.1, 0.05, 0.01)
-speeds: dict = {name: val for name, val in zip(diff_names, diff_values)}
-
+# default settings
 default_settings: GameSettings = {
     "init_length": 5,
     "growth_size": 1,
@@ -26,6 +23,7 @@ default_settings: GameSettings = {
 }
 
 
+# Enums for easier value setting
 class Modes(Enum):
     MENU = 0
     GAME = 1

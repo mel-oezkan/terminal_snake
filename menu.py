@@ -1,10 +1,6 @@
-from distutils.command.config import config
-import json
 import curses
-from multiprocessing.sharedctypes import Value
-import pathlib
 
-from typing import Tuple
+from typing import List, Tuple
 
 import common
 
@@ -15,32 +11,42 @@ from config import Keys
 from config import default_settings
 
 class Menu:
-    def __init__(self, screen, _state) -> None:
+    def __init__(self, screen, _window) -> None:
+        """ Constructor for the 
+        
+        param: screen (_CursesWindow): The screen instance of curses
+        param: _window: Information on which winodw is active (e.g. GAME or MENU)
+        """
+
         self.screen = screen
         self.screen.nodelay(Modes.MENU.value)
+        self.window_state = _window
 
-        
+        # create a state value to track which menu item is selected
         self.menu_state = {"active_menu": "MAIN"}
         
-        self.window_state = _state
-        
 
-    def update_window(self, value):
+    def update_window(self, value) -> None:
+        """Function to change the value of the window state (changes value within window clas)
+
+        :param value: value of the new window state 
+        """
+
         self.window_state["active_window"] = value
 
 
-    def draw_menu(self, menu_options: Tuple[str], graphics: Tuple[int]):
+    def draw_menu(self, menu_options: Tuple[str], graphics: Tuple[int]) -> None:
         """ Generic function that plots the given menu opitons
         according to the given graphics. (Graphics handles how
         the items are drawn)
 
         :param menu_options: Items to be displayed
-        :param 
+        :param graphics: How the items are displayed (e.g attributes such as color)
         """
         
+        # check if the two objects are same length
         assert len(menu_options) == len(graphics), f"Menu args have to match in size \n {len(menu_options)} : {len(graphics)}"
 
-        
         max_y, max_x = self.screen.getmaxyx()
         offset = len(menu_options) // 2 * (-1)
 
@@ -57,8 +63,12 @@ class Menu:
         self.screen.refresh()
 
 
-    def handle_menu_actions(self, active_opt, action, graphics):
-        """
+    def handle_menu_actions(self, active_opt: int, action: int, graphics: List[int]) -> None:
+        """ Function that handles the up and down arrow keys 
+        and handles the selected option respectively
+
+        :param active_opt: value of the active option
+        :param action: ascii-value of the pressed key
         """
         
         if action == curses.KEY_UP:
@@ -70,7 +80,11 @@ class Menu:
         return active_opt
 
 
-    def update_state(self, value):
+    def update_state(self, value) -> None:
+        """ Update the Menu state
+        
+        :param value: name of the new menu state
+        """
         self.state["active_menu"] = value
 
     
@@ -91,7 +105,6 @@ class Menu:
             elif self.menu_state["active_menu"] == "SCORES":
                 leaderboard_menu()
 
-
             elif self.menu_state["active_menu"] == "GAME":
                 self.update_window("GAME")
                 self.screen.clear()
@@ -99,7 +112,6 @@ class Menu:
                 # set the menu state to main such that when coming
                 # back the default value ("MAIN") will be set
                 main_menu.update_state(Defaults.MENU.value)
-
                 return 
 
             elif self.menu_state["active_menu"] == "QUIT":
@@ -109,14 +121,21 @@ class Menu:
                 return 
 
             else:
-                raise ValueError
+                raise NotImplementedError
 
 
 
 class MainMenu(Menu):
     options = ("Play", "Settings", "Scores", "Exit")
     
-    def __init__(self, screen, _state: dict, _window: dict):
+    def __init__(self, screen, _state: dict, _window: dict) -> None:
+        """ Initalize class variables
+        
+        :param screen (_CursesScreen): cureses screen instance
+        :param _state: which game subwindow is active
+        :param _window: which main window is active (currently: GAME)
+        :param _status: information about score
+        """
         super().__init__(screen, _window)
 
         self.state = _state 
@@ -126,7 +145,12 @@ class MainMenu(Menu):
         self.graphics[self.active_option] = curses.A_REVERSE
 
 
-    def handle_submit(self, active_option, action):
+    def handle_submit(self, active_option, action) -> None:
+        """ Function to handle if the enter key is clicked
+        where each option innvokes different updated
+        
+        :param action: ascii value of pressed key
+        """
         if action == Keys.ENTER.value:
 
             if active_option == 0:
@@ -150,11 +174,12 @@ class MainMenu(Menu):
         # Main loop for the main Menu        
         self.screen.clear()
         
+        # set variables for drawing
         self.graphics = [0, 0, 0, 0]
         self.graphics[self.active_option] = curses.A_REVERSE
-
         self.draw_menu(self.options, self.graphics)
         
+        # handle key inputs
         action = self.screen.getch()
         self.active_option = self.handle_menu_actions(self.active_option, action, self.graphics)
         self.handle_submit(self.active_option, action)
@@ -164,10 +189,16 @@ class MainMenu(Menu):
 
 
 class SettingsMenu(Menu):
-
-    def __init__(self, screen, _state: dict, _window: dict):
+    def __init__(self, screen, _state: dict, _window: dict) -> None:
+        """ Initalize class variables
+        
+        :param screen (_CursesScreen): cureses screen instance
+        :param _state: which game subwindow is active
+        :param _window: which main window is active (currently: GAME)
+        :param _status: information about score
+        """
         super().__init__(screen, _window)
-
+        
         self.state = _state
         self.active_option = 0
 
@@ -180,7 +211,6 @@ class SettingsMenu(Menu):
         """ Simple function that loads the preset settings
         from a json called settings. If non exists creates one 
         with values from the config file
-        
         """
 
         data: dict = {}
@@ -193,7 +223,10 @@ class SettingsMenu(Menu):
         self.settings: GameSettings = data
 
             
-    def create_options(self):
+    def create_options(self) -> None:
+        """ Given the settings (dict) creates string representations
+        for each of the items
+        """
 
         option_list = (
             f"Inital snake length: \t\t{self.settings['init_length']}", 
@@ -207,11 +240,10 @@ class SettingsMenu(Menu):
         return option_list
         
 
-    def handle_settings(self, action):
-        """ Handles the user input to increment or decrement values
+    def handle_settings(self, action) -> None: 
+        """ Handles the user input to increment or decrement values 
+        and updates the values within the settings file
 
-        could also be done with a step value witch is either -1 or 1 
-        
         :param action: user key input
         """
         
@@ -262,7 +294,15 @@ class SettingsMenu(Menu):
         common.write_settings(self.settings)
 
 
-    def handle_submit(self, action):
+    def handle_submit(self, action: int) -> None:
+        """ Handles a enter key press 
+        
+        Given that the last option is selected which will always be the 
+        return option. The current menu will change into the MAIN window
+
+        :param action: ascii value of pressed input key
+        """
+
         if action == Keys.ENTER.value:
             if self.active_option == len(self.graphics) -1:
                 self.update_state("MAIN")
@@ -276,9 +316,13 @@ class SettingsMenu(Menu):
         
         _options = self.create_options()
         self.draw_menu(_options, self.graphics)
-        
+
+        # get user inputs and handle them
         action = self.screen.getch()
-        self.active_option = self.handle_menu_actions(self.active_option, action, self.graphics)
+        self.active_option = self.handle_menu_actions(
+            self.active_option, action, self.graphics
+        )
+        
         self.handle_settings(action)
         self.handle_submit(action)
 
@@ -288,6 +332,13 @@ class SettingsMenu(Menu):
 class ScoresMenu(Menu):
     
     def __init__(self, screen, _state: dict, _window: dict):
+        """ Initalize class variables
+        
+        :param screen (_CursesScreen): cureses screen instance
+        :param _state: which game subwindow is active
+        :param _window: which main window is active (currently: GAME)
+        :param _status: information about score
+        """
         super().__init__(screen, _window)
 
         self.state = _state
@@ -311,10 +362,14 @@ class ScoresMenu(Menu):
 
 
     def handle_submit(self, action) -> None:
-        """ Checks if the Back button is clicked
+        """ Handles a enter key press 
+        
+        Given that the last option is selected which will always be the 
+        return option. The current menu will change into the MAIN window
 
-        :param action: ascii value of pressed key
+        :param action: ascii value of pressed input key
         """
+        
 
         if action == Keys.ENTER.value:
             self.update_state("MAIN")

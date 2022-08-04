@@ -1,8 +1,6 @@
-
-import sys
-from window import Window
 import os
 import platform
+from window import Window
 
 
 # curses does not run out the box in windows and some
@@ -10,14 +8,14 @@ import platform
 if platform.system() == 'win32':
     try:
         import curses
-    except Exception as e:
+    except ImportError:
         os.system("pip install windows-curses")
         import curses
-
-import curses
-
+else:
+    import curses
 
 if __name__ == "__main__":
-    window = Window()
 
+    # create window instance and run warpped around curses
+    window = Window()
     curses.wrapper(window.run)
