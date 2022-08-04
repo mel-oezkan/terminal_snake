@@ -1,5 +1,7 @@
+from distutils.command.config import config
 import json
 import curses
+from multiprocessing.sharedctypes import Value
 import pathlib
 
 from typing import Tuple
@@ -54,6 +56,7 @@ class Menu:
         
         self.screen.refresh()
 
+
     def handle_menu_actions(self, active_opt, action, graphics):
         """
         """
@@ -75,6 +78,7 @@ class Menu:
         
         main_menu = MainMenu(self.screen, self.menu_state, self.window_state)
         settings_menu = SettingsMenu(self.screen, self.menu_state, self.window_state)
+        leaderboard_menu = ScoresMenu(self.screen, self.menu_state, self.window_state)
 
         while True:
             if self.menu_state["active_menu"] == "MAIN":
@@ -83,6 +87,10 @@ class Menu:
                 
             elif self.menu_state["active_menu"] == "SETTINGS":
                 settings_menu()
+
+            elif self.menu_state["active_menu"] == "SCORES":
+                leaderboard_menu()
+
 
             elif self.menu_state["active_menu"] == "GAME":
                 self.update_window("GAME")
@@ -106,7 +114,7 @@ class Menu:
 
 
 class MainMenu(Menu):
-    options = ("Play", "Settings", "Help", "Exit")
+    options = ("Play", "Settings", "Scores", "Exit")
     
     def __init__(self, screen, _state: dict, _window: dict):
         super().__init__(screen, _window)
@@ -116,6 +124,7 @@ class MainMenu(Menu):
 
         self.graphics = [0, 0, 0, 0]
         self.graphics[self.active_option] = curses.A_REVERSE
+
 
     def handle_submit(self, active_option, action):
         if action == Keys.ENTER.value:
@@ -129,7 +138,7 @@ class MainMenu(Menu):
                 self.screen.clear()
 
             elif active_option == 2:
-                self.update_state("HELP")
+                self.update_state("SCORES")
                 self.screen.clear()
 
             elif active_option == 3:
@@ -153,6 +162,7 @@ class MainMenu(Menu):
         self.screen.clear()
 
 
+
 class SettingsMenu(Menu):
 
     def __init__(self, screen, _state: dict, _window: dict):
@@ -161,24 +171,23 @@ class SettingsMenu(Menu):
         self.state = _state
         self.active_option = 0
 
-        self.graphics = [0, 0, 0, 0, 0]
+        self.graphics = [0,0,0,0,0,0]
         self.graphics[self.active_option] = curses.A_REVERSE
         self.load_settings()
     
-    def load_settings(self, path: str = "settings.json") -> None:
+
+    def load_settings(self) -> None:
         """ Simple function that loads the preset settings
         from a json called settings. If non exists creates one 
         with values from the config file
         
-        :param path: path to the settings file 
         """
-        settings_path = pathlib.Path(path).absolute()
 
         data: dict = {}
-        if settings_path.exists() and settings_path.stat().st_size > 0:
-            data = common.load_settings(path)
-        else:
-            common.write_settings(default_settings, path)
+        data = common.load_settings()
+
+        if not data:
+            common.write_settings(default_settings)
             data = default_settings
 
         self.settings: GameSettings = data
@@ -187,15 +196,17 @@ class SettingsMenu(Menu):
     def create_options(self):
 
         option_list = (
-            f"Inital snake length: \t{self.settings['init_length']}", 
+            f"Inital snake length: \t\t{self.settings['init_length']}", 
             f"Growth size: \t\t{self.settings['growth_size']}", 
-            f"Speed: \t\t{self.settings['speed']}", 
+            f"Speed: \t\t\t{self.settings['speed']}", 
             f"Acceleration: \t\t{self.settings['acceleration']}",
+            f"Food count: \t\t{self.settings['food_count']}",
             "Back"
         )
 
         return option_list
         
+
     def handle_settings(self, action):
         """ Handles the user input to increment or decrement values
 
@@ -217,22 +228,29 @@ class SettingsMenu(Menu):
 
             elif self.active_option == 3:
                 self.settings["acceleration"] += 1
+
+            elif self.active_option == 4:
+                self.settings["food_count"] += 1
+            
             else: 
                 return
 
         # Handle decrement (and prevent the value getting below 0)
         elif action == curses.KEY_LEFT:
             if self.active_option == 0:
-                self.settings["init_length"] = max(self.settings["init_length"] -1, 0)
+                self.settings["init_length"] = max(self.settings["init_length"] -1, 4)
 
             elif self.active_option == 1:
-                self.settings["growth_size"] = max(self.settings["growth_size"]- 1, 0)
+                self.settings["growth_size"] = max(self.settings["growth_size"]- 1, 1)
             
             elif self.active_option == 2:
-                self.settings["speed"] = max(self.settings["speed"] - 1, 0)
+                self.settings["speed"] = max(self.settings["speed"] - 1, 1)
 
             elif self.active_option == 3:
-                self.settings["acceleration"] = max(self.settings["acceleration"] - 1, 0)
+                self.settings["acceleration"] = max(self.settings["acceleration"] - 1, 1)
+
+            elif self.active_option == 4:
+                self.settings["food_count"] = max(self.settings["food_count"] - 1, 1)
 
             else: 
                 return 
@@ -244,8 +262,6 @@ class SettingsMenu(Menu):
         common.write_settings(self.settings)
 
 
-
-
     def handle_submit(self, action):
         if action == Keys.ENTER.value:
             if self.active_option == len(self.graphics) -1:
@@ -255,7 +271,7 @@ class SettingsMenu(Menu):
     def __call__(self) -> None:
 
         # Main loop for the main Menu        
-        self.graphics = [0,0,0,0,0]
+        self.graphics = [0,0,0,0,0,0]
         self.graphics[self.active_option] = curses.A_REVERSE
         
         _options = self.create_options()
@@ -269,3 +285,61 @@ class SettingsMenu(Menu):
         self.screen.clear()
 
 
+class ScoresMenu(Menu):
+    
+    def __init__(self, screen, _state: dict, _window: dict):
+        super().__init__(screen, _window)
+
+        self.state = _state
+
+    def load_leaderboard(self):
+        """ Loads the leaderboard from its file"""
+
+        # reduce the leaderboard to top 5
+        leaderboard_items = common.read_leaderboard()
+        if len(leaderboard_items) > 5:
+            leaderboard_items = leaderboard_items[:5] 
+
+        # convert leaderboard items to str
+        leaderboard_str = [
+            f"{item['time']}: \t\t{item['score']}" for item in leaderboard_items
+        ]
+
+        # add Back button
+        self.options = leaderboard_str if leaderboard_str else []
+        self.options.append("Back")
+
+
+    def handle_submit(self, action) -> None:
+        """ Checks if the Back button is clicked
+
+        :param action: ascii value of pressed key
+        """
+
+        if action == Keys.ENTER.value:
+            self.update_state("MAIN")
+            self.screen.clear()
+            return True
+
+        return False
+
+
+    def __call__(self) -> None:
+        """ Main loop for the leaderboard window"""
+
+        # load leaderboard and set up drawing variable
+        self.load_leaderboard()
+        self.graphics = [0 for _ in range(len(self.options))]
+        self.graphics[-1] = curses.A_REVERSE
+
+        # draw leaderboard
+        self.draw_menu(self.options, self.graphics)
+        
+        # listen for the keys
+        while True:
+            action = self.screen.getch()
+            if self.handle_submit(action):
+                break
+        
+        self.screen.clear()
+        

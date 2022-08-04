@@ -6,7 +6,11 @@ class GameSettings(TypedDict):
     growth_size: int
     speed: int
     acceleration: int
+    food_count: int
 
+class LeaderboardItem(TypedDict):
+    time: str
+    score: int
 
 
 diff_names = ("Easy", "Medium", "Hard")
@@ -17,7 +21,8 @@ default_settings: GameSettings = {
     "init_length": 5,
     "growth_size": 1,
     "speed": 2,
-    "acceleration": 1
+    "acceleration": 1,
+    "food_count": 1
 }
 
 

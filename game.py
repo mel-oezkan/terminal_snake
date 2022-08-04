@@ -19,7 +19,7 @@ class Game:
         self.screen = screen
         self.window_state = _window
         
-        self.game_state = {"current_state": "DEATH"}
+        self.game_state = {"current_state": "GAME"}
         self.game_score = {"score": 0}
 
         self.max_y: int
@@ -99,9 +99,9 @@ class Game:
 class GameWindow(Game):
 
     # variables to store the respective charachters
-    food = "@"
+    food_char = "@"
     char = "\u25AA" #"\u25A0"
-    headchars = ("\u25B9", "\u25C3", "\u25B5", "\u25BF")
+    heads = ("\u25B9", "\u25C3", "\u25B5", "\u25BF")
 
     def __init__(self, screen, _state: dict, _window: dict, _status: dict) -> None:
         """ Initalize class variables
@@ -131,11 +131,8 @@ class GameWindow(Game):
         self.deadcell = self.body[-1][:]
 
         self.snake_speed = self.settings["speed"] * self.settings["acceleration"]
+        self.__init_food()
 
-        self.food_pos = [
-            random.randrange(2, self.max_y - 1), 
-            random.randrange(2, self.max_x - 1)
-        ]
 
 
     def _start_position(self) -> None:
@@ -164,6 +161,14 @@ class GameWindow(Game):
         self.direction = random.choice([vertical_dir, horizontal_dir])
 
 
+    def __init_food(self):
+        self.food = []
+        
+        for _ in range(self.settings["food_count"]):
+            new_pos = self._new_food()
+            self.food.append(new_pos)
+
+
     def _new_food(self):
         """ Searches a freee space and then places a new apple there """
         
@@ -173,9 +178,20 @@ class GameWindow(Game):
                 random.randrange(1, self.max_x - 1)
             ]
 
-            if self.screen.inch(*new_pos) == config.Keys.SPACE.value:
-                self.food_pos = new_pos
-                break
+            if (
+                new_pos not in self.food and 
+                self.screen.inch(*new_pos) == config.Keys.SPACE.value
+            ):
+                return new_pos
+
+    def update_food(self, food_pos: List[int]):
+        """ Given the coordinates of the eaten food create new
+        food to replace the eaten one
+        """
+        
+        # index the food
+        food_index = self.food.index(food_pos)
+        self.food[food_index] = self._new_food()
 
 
     def draw_game(self) -> None:
@@ -207,12 +223,13 @@ class GameWindow(Game):
         )
 
         # draws the food
-        self.screen.addch(
-            self.food_pos[0],
-            self.food_pos[1],
-            ord(self.food),
-            curses.A_BOLD| curses.color_pair(2)
-        )
+        for food_item in self.food:
+            self.screen.addch(
+                food_item[0],
+                food_item[1],
+                ord(self.food_char),
+                curses.A_BOLD| curses.color_pair(2)
+            )
 
 
     def handle_menu(self, action: int) -> bool:
@@ -306,12 +323,13 @@ class GameWindow(Game):
             for _ in range(self.settings["growth_size"]):
                 self.body.append(self.body[-1])
 
-            self._new_food()
+            self.update_food(self.head_pos)
         
         elif n_char == config.Keys.SPACE.value:
             pass
         
         else:
+            common.write_score(self.status)
             self._update_state("DEATH")
             return False
 
@@ -348,6 +366,8 @@ class GameWindow(Game):
         self.screen.move(self.max_y - 1, self.max_x - 1)
         self.screen.refresh()
 
+        # reduce the sleep time when moving vertically since the  
+        # size of the columns is double the amount
         sleep_time = 1 / self.snake_speed  
         sleep_time = sleep_time / 2 if self.direction in [0,1] else sleep_time
         
@@ -379,7 +399,6 @@ class GameDeath(Game):
         :param action: ascii value of pressed key
         """
         
-        
         if action == config.Keys.ENTER.value:
             self._update_state("GAME")
             self.screen.refresh()
@@ -392,6 +411,10 @@ class GameDeath(Game):
             self._update_state("QUIT")
             self.screen.refresh()
 
+        else: 
+            return False
+        
+        return True
 
     def draw_end(self):
         """ Drawing the end screen """
@@ -426,15 +449,11 @@ class GameDeath(Game):
         self.screen.border()
         self.draw_end()
 
-    
-        action = self.screen.getch()
-        self.handle_menu_keys(action)
+        
+        # handles non menu input
+        while True:
+            action = self.screen.getch()
+            if self.handle_menu_keys(action):
+                break
 
         self.screen.clear()
-
-
-
- 
-
-
-
